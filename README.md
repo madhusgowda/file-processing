@@ -2,6 +2,7 @@
 
 1. Clone the repository
 2. Start Redis server by calling command: 
+   -  Before starting Redis server install the redis application
    - *redis-server*
 3. Now run local server on terminal by calling: 
    - *go run cmd/main.go*
