@@ -30,3 +30,6 @@
    - Which returns the size of the file.
    - Sample response:
         "23"
+7. To Run Test Cases:
+   - Run local server and redis
+   - Enter *go test ./internal/handler/routes_test.go*
