@@ -173,3 +173,41 @@ func TestGetFileSizeHandlerIntegration_Success(t *testing.T) {
 	assert.Equal(t, filename, response.FileName)
 	assert.Equal(t, int64(20), response.FileSize)
 }
+
+func TestGetFileSizeHandlerIntegration_Failure(t *testing.T) {
+
+	r := mux.NewRouter()
+
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	server.URL = "http://localhost:8080"
+
+	filename := "sample.xyz"
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/file/%s", server.URL, filename), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var response struct {
+		FileName string `json:"filename"`
+		FileSize int64  `json:"file_size"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, filename, response.FileName)
+	assert.Equal(t, int64(0), response.FileSize)
+}
