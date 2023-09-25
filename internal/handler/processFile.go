@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path/filepath"
 )
 
 type Handler struct {
@@ -30,11 +31,41 @@ func (h *Handler) UploadFileHandler() http.HandlerFunc {
 		}
 		defer file.Close()
 
+		if fileHeader.Size == 0 {
+			response := struct {
+				Message string `json:"message"`
+			}{
+				Message: "File is empty",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		allowedFileTypes := map[string]bool{
+			".txt": true,
+			".pdf": true,
+		}
+
+		fileExt := filepath.Ext(fileHeader.Filename)
+		if !allowedFileTypes[fileExt] {
+			response := struct {
+				Message string `json:"message"`
+			}{
+				Message: "Unsupported file type",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
 		fileName := fileHeader.Filename
 
 		fileBytes, err := ioutil.ReadAll(file)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -44,7 +75,7 @@ func (h *Handler) UploadFileHandler() http.HandlerFunc {
 		})
 
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
