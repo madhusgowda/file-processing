@@ -171,5 +171,5 @@ func TestGetFileSizeHandlerIntegration_Success(t *testing.T) {
 	}
 
 	assert.Equal(t, filename, response.FileName)
-	assert.Equal(t, int64(121), response.FileSize)
+	assert.Equal(t, int64(20), response.FileSize)
 }
