@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/hashicorp/raft"
 	"io/ioutil"
+	"log"
 	"net/http"
 )
 
@@ -42,11 +43,25 @@ func (h *Handler) UploadFileHandler() http.HandlerFunc {
 			Size:     int64(len(fileBytes)),
 		})
 
-		raftNodeErr := h.raftNode.Apply(fileData, 0)
-		if raftNodeErr.Error() != nil {
-			//Error Handling
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		err2 := h.raftNode.Apply(fileData, 0)
+		if err2 == nil {
+			response := struct {
+				Message string `json:"message"`
+			}{
+				Message: "File uploading failed, node is not the leader",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			log.Printf("Error applying file: %s\n", err2.Error())
+			return
+		}
+
 		response := struct {
 			Message string `json:"message"`
 		}{

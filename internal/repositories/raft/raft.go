@@ -29,13 +29,13 @@ type raftFSM struct {
 }
 
 func (rf *raftFSM) Snapshot() (raft2.FSMSnapshot, error) {
-	//TODO implement me
-	panic("implement me")
+	//TODO implement later
+	panic("implement later")
 }
 
 func (rf *raftFSM) Restore(snapshot io.ReadCloser) error {
-	//TODO implement me
-	panic("implement me")
+	//TODO implement later
+	panic("implement later")
 }
 
 func NewRaftCluster(conf config.AppConfig, redisRepo2 *redis.RedisRepository) *RaftCluster {
@@ -51,6 +51,7 @@ func (rc *RaftCluster) CreateNewRaftCluster() *raft2.Raft {
 	logDir := "../raft-data"
 	os.MkdirAll(logDir, 0700)
 	logFile := filepath.Join(logDir, "raft-log.bolt")
+
 	boltDB, err := raftboltdb.NewBoltStore(logFile)
 	if err != nil {
 		log.Fatalf("Error creating Bolt store: %v", err)
@@ -61,7 +62,7 @@ func (rc *RaftCluster) CreateNewRaftCluster() *raft2.Raft {
 		log.Fatal(err)
 	}
 	// Create the Raft transport
-	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9000") // Change to your desired address
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9000")
 	if err != nil {
 		log.Fatalf("Error resolving TCP address: %v", err)
 	}
@@ -69,13 +70,21 @@ func (rc *RaftCluster) CreateNewRaftCluster() *raft2.Raft {
 	if err != nil {
 		log.Fatalf("Error creating TCP transport: %v", err)
 	}
-	// Create the Raft node
 
+	// Create the Raft node
 	r, err := raft2.NewRaft(raftConf, &raftFSM{}, boltDB, boltDB, snapshotStore, transport)
 	if err != nil {
 		log.Fatalf("Error creating Raft node: %v", err)
 	}
-
+	configuration := raft2.Configuration{
+		Servers: []raft2.Server{
+			{
+				ID:      raftConf.LocalID,
+				Address: transport.LocalAddr(),
+			},
+		},
+	}
+	r.BootstrapCluster(configuration)
 	raftNode = r
 	return raftNode
 }
@@ -89,7 +98,6 @@ func (rf *raftFSM) Apply(log *raft2.Log) interface{} {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	// Update the Redis database with the command
 	err = redisRepo.Set(file.FileName, file.Size)
 	if err != nil {
 		return err
