@@ -45,6 +45,11 @@ func TestUploadFileHandlerIntegration_Success(t *testing.T) {
 	}
 
 	assert.Equal(t, "File uploaded and processed successfully", response.Message)
+	if response.Message == "File uploaded and processed successfully" {
+		t.Logf("Expected: %s, Got: %s", "File to be uploaded successfully", response.Message)
+	} else {
+		t.Errorf("Expected: %s, Got: %s", "File to be uploaded successfully", response.Message)
+	}
 }
 
 func TestUploadFileHandlerIntegration_EmptyFile(t *testing.T) {
@@ -80,7 +85,12 @@ func TestUploadFileHandlerIntegration_EmptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, "File is empty", response.Message)
+	//assert.Equal(t, "File is empty", response.Message)
+	if (response.Message) == "File is empty" {
+		t.Logf("Expected: %s, Got: %s", "File is empty", response.Message)
+	} else {
+		t.Errorf("Expected: %s, Got: %s", "File is empty", response.Message)
+	}
 }
 
 func TestUploadFileHandlerIntegration_FileTypeValidation(t *testing.T) {
@@ -117,6 +127,11 @@ func TestUploadFileHandlerIntegration_FileTypeValidation(t *testing.T) {
 	}
 
 	assert.Equal(t, "Unsupported file type", response.Message)
+	if (response.Message) == "Unsupported file type" {
+		t.Logf("Expected: %s, Got: %s", "Unsupported file type", response.Message)
+	} else {
+		t.Errorf("Expected: %s, Got: %s", "Unsupported file type", response.Message)
+	}
 }
 
 func TestGetFileSizeHandlerIntegration_Success(t *testing.T) {
@@ -149,6 +164,12 @@ func TestGetFileSizeHandlerIntegration_Success(t *testing.T) {
 
 	assert.Equal(t, filename, response.FileName)
 	assert.Equal(t, int64(20), response.FileSize)
+
+	if (response.FileName) == "sample.txt" && (response.FileSize) == int64(20) {
+		t.Logf("Expected - FileName: %s & FileSize %d, Got - FileName: %s & FileSize %d", "sample.txt", int64(20), response.FileName, response.FileSize)
+	} else {
+		t.Errorf("Expected - FileName: %s & FileSize %d, Got - FileName: %s & FileSize %d", "sample.txt", int64(20), response.FileName, response.FileSize)
+	}
 }
 
 func TestGetFileSizeHandlerIntegration_Failure(t *testing.T) {
@@ -181,4 +202,10 @@ func TestGetFileSizeHandlerIntegration_Failure(t *testing.T) {
 
 	assert.Equal(t, filename, response.FileName)
 	assert.Equal(t, int64(0), response.FileSize)
+
+	if (response.FileName) == "sample.xyz" && (response.FileSize) == int64(0) {
+		t.Logf("Expected - FileName: %s & FileSize %d, Got - FileName: %s & FileSize %d", "sample.xyz", int64(0), response.FileName, response.FileSize)
+	} else {
+		t.Errorf("Expected - FileName: %s & FileSize %d, Got - FileName: %s & FileSize %d", "sample.xyz", int64(0), response.FileName, response.FileSize)
+	}
 }
