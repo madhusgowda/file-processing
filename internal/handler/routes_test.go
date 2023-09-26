@@ -6,20 +6,13 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUploadFileHandlerIntegration_Success(t *testing.T) {
-	r := mux.NewRouter()
-
-	server := httptest.NewServer(r)
-	defer server.Close()
-
-	server.URL = "http://localhost:8080"
+	serverURL := "http://localhost:8080"
 
 	fileContents := []byte("Sample file contents")
 	body := new(bytes.Buffer)
@@ -28,7 +21,7 @@ func TestUploadFileHandlerIntegration_Success(t *testing.T) {
 	part.Write(fileContents)
 	writer.Close()
 
-	req, err := http.NewRequest("POST", server.URL+"/upload", body)
+	req, err := http.NewRequest("POST", serverURL+"/upload", body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,12 +48,7 @@ func TestUploadFileHandlerIntegration_Success(t *testing.T) {
 }
 
 func TestUploadFileHandlerIntegration_EmptyFile(t *testing.T) {
-	r := mux.NewRouter()
-
-	server := httptest.NewServer(r)
-	defer server.Close()
-
-	server.URL = "http://localhost:8080"
+	serverURL := "http://localhost:8080"
 
 	fileContents := []byte("")
 	body := new(bytes.Buffer)
@@ -69,7 +57,7 @@ func TestUploadFileHandlerIntegration_EmptyFile(t *testing.T) {
 	part.Write(fileContents)
 	writer.Close()
 
-	req, err := http.NewRequest("POST", server.URL+"/upload", body)
+	req, err := http.NewRequest("POST", serverURL+"/upload", body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,12 +84,7 @@ func TestUploadFileHandlerIntegration_EmptyFile(t *testing.T) {
 }
 
 func TestUploadFileHandlerIntegration_FileTypeValidation(t *testing.T) {
-	r := mux.NewRouter()
-
-	server := httptest.NewServer(r)
-	defer server.Close()
-
-	server.URL = "http://localhost:8080"
+	serverURL := "http://localhost:8080"
 
 	fileContents := []byte("Sample file data")
 	body := new(bytes.Buffer)
@@ -110,7 +93,7 @@ func TestUploadFileHandlerIntegration_FileTypeValidation(t *testing.T) {
 	part.Write(fileContents)
 	writer.Close()
 
-	req, err := http.NewRequest("POST", server.URL+"/upload", body)
+	req, err := http.NewRequest("POST", serverURL+"/upload", body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,17 +120,11 @@ func TestUploadFileHandlerIntegration_FileTypeValidation(t *testing.T) {
 }
 
 func TestGetFileSizeHandlerIntegration_Success(t *testing.T) {
-
-	r := mux.NewRouter()
-
-	server := httptest.NewServer(r)
-	defer server.Close()
-
-	server.URL = "http://localhost:8080"
+	serverURL := "http://localhost:8080"
 
 	filename := "sample.txt"
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/file/%s", server.URL, filename), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/file/%s", serverURL, filename), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,17 +152,11 @@ func TestGetFileSizeHandlerIntegration_Success(t *testing.T) {
 }
 
 func TestGetFileSizeHandlerIntegration_Failure(t *testing.T) {
-
-	r := mux.NewRouter()
-
-	server := httptest.NewServer(r)
-	defer server.Close()
-
-	server.URL = "http://localhost:8080"
+	serverURL := "http://localhost:8080"
 
 	filename := "sample.xyz"
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/file/%s", server.URL, filename), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/file/%s", serverURL, filename), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
