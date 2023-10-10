@@ -5,6 +5,7 @@ import (
 	"fileProcessing/config"
 	domains "fileProcessing/internal/core/domain"
 	"fileProcessing/internal/repositories/redis"
+	"fmt"
 	raft2 "github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"io"
@@ -21,7 +22,6 @@ type RaftCluster struct {
 }
 
 var (
-	raftNode  *raft2.Raft
 	redisRepo *redis.RedisRepository
 )
 
@@ -46,47 +46,57 @@ func NewRaftCluster(conf config.AppConfig, redisRepo2 *redis.RedisRepository) *R
 }
 
 func (rc *RaftCluster) CreateNewRaftCluster() *raft2.Raft {
-	raftConf := raft2.DefaultConfig()
-	raftConf.LocalID = raft2.ServerID("node1")
-	logDir := "../raft-data"
-	os.MkdirAll(logDir, 0700)
-	logFile := filepath.Join(logDir, "raft-log.bolt")
+	var leaderNode *raft2.Raft // Declare a variable to store the leader node
 
-	boltDB, err := raftboltdb.NewBoltStore(logFile)
-	if err != nil {
-		log.Fatalf("Error creating Bolt store: %v", err)
-	}
-	raftSnapShotRetain := 2
-	snapshotStore, err := raft2.NewFileSnapshotStore("", raftSnapShotRetain, os.Stdout)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Create the Raft transport
-	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9000")
-	if err != nil {
-		log.Fatalf("Error resolving TCP address: %v", err)
-	}
-	transport, err := raft2.NewTCPTransport(addr.String(), addr, 3, 10*time.Second, os.Stdout)
-	if err != nil {
-		log.Fatalf("Error creating TCP transport: %v", err)
-	}
+	for i := 1; i <= 3; i++ {
+		nodeID := fmt.Sprintf("node%d", i)
+		raftConf := raft2.DefaultConfig()
+		raftConf.LocalID = raft2.ServerID(nodeID)
+		logDir := fmt.Sprintf("../raft-data/node%d", i)
+		os.MkdirAll(logDir, 0700)
+		logFile := filepath.Join(logDir, "raft-log.bolt")
 
-	// Create the Raft node
-	r, err := raft2.NewRaft(raftConf, &raftFSM{}, boltDB, boltDB, snapshotStore, transport)
-	if err != nil {
-		log.Fatalf("Error creating Raft node: %v", err)
+		boltDB, err := raftboltdb.NewBoltStore(logFile)
+		if err != nil {
+			log.Fatalf("Error creating Bolt store: %v", err)
+		}
+		raftSnapShotRetain := 2
+		snapshotStore, err := raft2.NewFileSnapshotStore("", raftSnapShotRetain, os.Stdout)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// Create the Raft transport
+		addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("127.0.0.1:900%d", i))
+		if err != nil {
+			log.Fatalf("Error resolving TCP address: %v", err)
+		}
+		transport, err := raft2.NewTCPTransport(addr.String(), addr, 3, 10*time.Second, os.Stdout)
+		if err != nil {
+			log.Fatalf("Error creating TCP transport: %v", err)
+		}
+
+		// Create the Raft node
+		r, err := raft2.NewRaft(raftConf, &raftFSM{}, boltDB, boltDB, snapshotStore, transport)
+		if err != nil {
+			log.Fatalf("Error creating Raft node: %v", err)
+		}
+
+		if i == 1 {
+			configuration := raft2.Configuration{
+				Servers: []raft2.Server{
+					{
+						ID:      raftConf.LocalID,
+						Address: transport.LocalAddr(),
+					},
+				},
+			}
+			r.BootstrapCluster(configuration)
+			leaderNode = r
+		} else {
+			r.AddVoter(raftConf.LocalID, transport.LocalAddr(), 0, 0)
+		}
 	}
-	configuration := raft2.Configuration{
-		Servers: []raft2.Server{
-			{
-				ID:      raftConf.LocalID,
-				Address: transport.LocalAddr(),
-			},
-		},
-	}
-	r.BootstrapCluster(configuration)
-	raftNode = r
-	return raftNode
+	return leaderNode
 }
 
 func (rf *raftFSM) Apply(log *raft2.Log) interface{} {
@@ -104,3 +114,51 @@ func (rf *raftFSM) Apply(log *raft2.Log) interface{} {
 	}
 	return nil
 }
+
+//func (rc *RaftCluster) CreateNewRaftCluster() *raft2.Raft {
+//	for i := 1; i <= 3; i++ {
+//		nodeID := fmt.Sprintf("node%d", i)
+//		raftConf := raft2.DefaultConfig()
+//		raftConf.LocalID = raft2.ServerID(nodeID)
+//		logDir := fmt.Sprintf("../raft-data/node%d", i)
+//		os.MkdirAll(logDir, 0700)
+//		logFile := filepath.Join(logDir, "raft-log.bolt")
+//
+//		boltDB, err := raftboltdb.NewBoltStore(logFile)
+//		if err != nil {
+//			log.Fatalf("Error creating Bolt store: %v", err)
+//		}
+//		raftSnapShotRetain := 2
+//		snapshotStore, err := raft2.NewFileSnapshotStore("", raftSnapShotRetain, os.Stdout)
+//		if err != nil {
+//			log.Fatal(err)
+//		}
+//		// Create the Raft transport
+//		addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("127.0.0.1:900%d", i))
+//		if err != nil {
+//			log.Fatalf("Error resolving TCP address: %v", err)
+//		}
+//		transport, err := raft2.NewTCPTransport(addr.String(), addr, 3, 10*time.Second, os.Stdout)
+//		if err != nil {
+//			log.Fatalf("Error creating TCP transport: %v", err)
+//		}
+//
+//		// Create the Raft node
+//		r, err := raft2.NewRaft(raftConf, &raftFSM{}, boltDB, boltDB, snapshotStore, transport)
+//		if err != nil {
+//			log.Fatalf("Error creating Raft node: %v", err)
+//		}
+//
+//		configuration := raft2.Configuration{
+//			Servers: []raft2.Server{
+//				{
+//					ID:      raftConf.LocalID,
+//					Address: transport.LocalAddr(),
+//				},
+//			},
+//		}
+//		r.BootstrapCluster(configuration)
+//		raftNode = r
+//	}
+//	return raftNode
+//}
